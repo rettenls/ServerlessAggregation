@@ -38,18 +38,14 @@ def lambda_handler(event, context):
     print('Invoked ReduceLambda with ' + str(len(records)) + ' Delta message(s).')
 
     # Initialize Dict for Total Delta
-    total_count = dict()
+    totals = dict()
 
     # Initialize DDB Ressource
     ddb_ressource = boto3.resource(DYNAMO_NAME, region_name=REGION_NAME)
     hash_table = ddb_ressource.Table(HASH_TABLE_NAME)
     
-    # Ensure this batch hasn't been processed already:
-    record_list_hash = hashlib.sha256(json.dumps(records).encode()).hexdigest()
-    item = get_item_ddb(hash_table, {HASH_TABLE_KEY : record_list_hash}, strong_consistency = True)
-    if (item):
-        print('Batch was already processed. Skipping this one.')
-        return {'statusCode': 200}
+    # Calculate hash to ensure this batch hasn't been processed already:
+    record_list_hash = hashlib.md5(str(records).encode()).hexdigest()
 
     # Keep track of number of batches for timestamp mean
     batch_count = 0
@@ -70,26 +66,26 @@ def lambda_handler(event, context):
             # Iterate over Entries in Message
             for entry in data:
                 if entry == TIMESTAMP_GENERATOR_FIRST:
-                    dict_entry_min(total_count, entry, data[entry])
+                    dict_entry_min(totals, entry, data[entry])
                 else:
-                    dict_entry_add(total_count, entry, data[entry])
+                    dict_entry_add(totals, entry, data[entry])
 
     # If this batch contains only deletes: Done
-    if not total_count:
+    if not totals:
         print('Skipped batch - no new entries.')
         return {'statusCode': 200}
 
     # Get Timestamps
-    timestamp_generator_first = total_count[TIMESTAMP_GENERATOR_FIRST]
-    del total_count[TIMESTAMP_GENERATOR_FIRST]
-    timestamp_generator_mean = total_count[TIMESTAMP_GENERATOR_MEAN] / batch_count
-    del total_count[TIMESTAMP_GENERATOR_MEAN]
+    timestamp_generator_first = totals[TIMESTAMP_GENERATOR_FIRST]
+    del totals[TIMESTAMP_GENERATOR_FIRST]
+    timestamp_generator_mean = totals[TIMESTAMP_GENERATOR_MEAN] / batch_count
+    del totals[TIMESTAMP_GENERATOR_MEAN]
 
     # Total Count of New Messages (for Printing)
-    total_new_message_count = total_count[MESSAGE_COUNT_NAME]
+    total_new_message_count = totals[MESSAGE_COUNT_NAME]
     
     # Read Current Values with one single BatchOperation
-    key_list = [{AGGREGATE_TABLE_KEY: ident} for ident in total_count.keys()]
+    key_list = [{AGGREGATE_TABLE_KEY: ident} for ident in totals.keys()]
     response = ddb_ressource.batch_get_item(
         RequestItems = {
             AGGREGATE_TABLE_NAME : {
@@ -102,23 +98,28 @@ def lambda_handler(event, context):
     # Increment Counts
     for entry in response['Responses'][AGGREGATE_TABLE_NAME]:
         ident = entry[AGGREGATE_TABLE_KEY]
-        total_count[ident] = Decimal(total_count[ident]) + entry[VALUE_COLUMN_NAME]
+        totals[ident] = totals[ident] + float(entry[VALUE_COLUMN_NAME])
     
     # Write New Values as Transaction
     ddb_client = boto3.client(DYNAMO_NAME, region_name=REGION_NAME)
     
     # Normal Items
     batch = [ { 'Put': { 'Item': {AGGREGATE_TABLE_KEY: {'S' : entry}, 
-        VALUE_COLUMN_NAME: {'N' : str(total_count[entry])}}, 
-        'TableName' : AGGREGATE_TABLE_NAME } } for entry in total_count.keys()]
+        VALUE_COLUMN_NAME: {'N' : str(totals[entry])}}, 
+        'TableName' : AGGREGATE_TABLE_NAME } } for entry in totals.keys()]
 
-    # Hash
-    batch.append({ 'Put' : { 'Item': { HASH_TABLE_KEY : { 'S' : record_list_hash}}, 
-    'TableName' : HASH_TABLE_NAME } })
-    
-    response = ddb_client.transact_write_items(
-        TransactItems = batch
-    )
+    try:
+        response = ddb_client.transact_write_items(
+            TransactItems = batch,
+            ClientRequestToken = record_list_hash
+        )
+    except ClientError as e:
+        if e.response['Error']['Code']=='IdempotentParameterMismatchException':  
+            print('Batch was already processed. Skipping this one.')
+            return {'statusCode': 200}
+        else:
+            raise Exception(e)
+        
 
     # Performance Tracker
     event_counter.increment('reduce_lambda_batch_size', len(records))
@@ -137,8 +138,7 @@ def lambda_handler(event, context):
         perf_tracker.submit_measurements()
         
         # Raise Exception
-        print('Manually Introduced Random Failure!')
-        raise Exception()
+        raise Exception('Manually Introduced Random Failure!')
 
     # Submit Performance Measurements
     perf_tracker.add_metric_sample(None, event_counter, None, None)

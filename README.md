@@ -28,4 +28,4 @@ This project currently consists of a DataGenerator, a Frontend, and three Lambda
 3. ./../updateLambdas.sh
 
 ## Measurements
-Currently there is a single EC2 that runs influxDB and grafana, the instance is on elastic IP which is hardcoded in all lambdas. Login to grafana via http://18.197.209.72:3000/ using admin/htcadmin and navigate to MapReduceDashboard. It is possible that you need to disconnect from VPN because of the port 3000. 
+Currently there is a single EC2 that runs influxDB and grafana, the instance is on elastic IP which is hardcoded in all lambdas. Login to grafana via http://18.197.209.72:3000/ using admin/htcadmin and navigate to MapReduceDashboard. It is possible that you need to disconnect from VPN because of the port 3000.
