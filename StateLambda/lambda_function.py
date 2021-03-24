@@ -49,19 +49,18 @@ def lambda_handler(event, context):
         data = json.loads(base64.b64decode(record[KINESIS_NAME]['data']).decode('utf-8'))
 
         # Get Entries
-        record_id       = data[ID_COLUMN_NAME]
-        record_type     = data[TYPE_COLUMN_NAME]
-        record_value    = data[VALUE_COLUMN_NAME]
-        record_version  = data[VERSION_COLUMN_NAME]
-        record_time     = data[TIMESTAMP_COLUMN_NAME]
+        record_id           = data[ID_COLUMN_NAME]
+        record_hierarchy    = data[HIERARCHY_COLUMN_NAME]
+        record_value        = data[VALUE_COLUMN_NAME]
+        record_version      = data[VERSION_COLUMN_NAME]
+        record_time         = data[TIMESTAMP_COLUMN_NAME]
         
         # Manually Introduced Random Failure
         if random.uniform(0,100) < FAILURE_STATE_LAMBDA_PCT / len(records):
             event_counter.increment('state_lambda_random_failures', 1)
             perf_tracker.add_metric_sample(None, event_counter, None, None)
             perf_tracker.submit_measurements()
-            print('Manually Introduced Random Failure!')
-            raise Exception()
+            raise Exception('Manually Introduced Random Failure!')
 
         # Write to DDB
         # --> We use a conditional update item to ensure we always have the most recent version
@@ -72,34 +71,33 @@ def lambda_handler(event, context):
                     },
                 UpdateExpression = 'SET  #VALUE     = :new_value,' + \
                                         '#VERSION   = :new_version,' + \
-                                        '#TYPE      = :new_type,' + \
+                                        '#HIERARCHY = :new_hierarchy,' + \
                                         '#TIMESTAMP = :new_time',
                 ConditionExpression = 'attribute_not_exists(' + ID_COLUMN_NAME + ') OR ' + VERSION_COLUMN_NAME + '< :new_version',
                 ExpressionAttributeNames={
                     '#VALUE':       VALUE_COLUMN_NAME,
                     '#VERSION':     VERSION_COLUMN_NAME,
-                    '#TYPE':        TYPE_COLUMN_NAME,
+                    '#HIERARCHY':   HIERARCHY_COLUMN_NAME,
                     '#TIMESTAMP':   TIMESTAMP_COLUMN_NAME
                     },
                 ExpressionAttributeValues={
-                    ':new_version': record_version,
-                    ':new_value':   record_value,
-                    ':new_type':    record_type,
-                    ':new_time':    Decimal(record_time)
+                    ':new_version':     record_version,
+                    ':new_value':       Decimal(str(record_value)),
+                    ':new_hierarchy':   json.dumps(record_hierarchy, sort_keys = True),
+                    ':new_time':        Decimal(str(record_time))
                     },
                 )
         except ClientError as e:
             if e.response['Error']['Code']=='ConditionalCheckFailedException':  
                 print('Conditional put failed.' + \
                     ' This is either a duplicate or a more recent version already arrived.')
-                print('Id: ', record_id)
-                print('Type: ', record_type)
-                print('Value: ', record_value)
-                print('Version: ', record_version)
-                print('Timestamp: ', record_time)
+                print('Id: ',           record_id)
+                print('Hierarchy: ',    record_hierarchy)
+                print('Value: ',        record_value)
+                print('Version: ',      record_version)
+                print('Timestamp: ',    record_time)
             else:
-                print(e)
-                raise Exception()
+                raise Exception(e)
             
     # Performance Tracker
     event_counter.increment('state_lambda_batch_size', len(records))

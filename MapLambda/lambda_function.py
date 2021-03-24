@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     delta = aggregate_along_tree(delta)
 
     # Create Message
-    message = json.dumps(delta)
+    message = json.dumps(delta, sort_keys = True)
     
     # Compute hash over all records
     message_hash = hashlib.sha256(str(records).encode()).hexdigest()
@@ -75,16 +75,14 @@ def lambda_handler(event, context):
             print('Item:', message)
             print('Full Exception: ' + str(e) + '.')
         else:
-            print(e)
-            raise Exception()       
+            raise Exception(e)       
     
     # Manually Introduced Random Failure
     if random.uniform(0,100) < FAILURE_MAP_LAMBDA_PCT:
         event_counter.increment('map_lambda_random_failures', 1)
         perf_tracker.add_metric_sample(None, event_counter, None, None)
         perf_tracker.submit_measurements()
-        print('Manually Introduced Random Failure!')
-        raise Exception()
+        raise Exception('Manually Introduced Random Failure!')
 
     print('MapLambda finished. Aggregated ' + str(delta[MESSAGE_COUNT_NAME]) + \
         ' message(s) and written to DeltaTable. MessageHash: ' + message_hash + '.')

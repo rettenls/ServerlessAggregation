@@ -62,10 +62,10 @@ DUPLICATES_PER_BATCH                = 0
 PERCENTAGE_MODIFY                   = 0
 PERCENTAGE_OUT_OR_ORDER             = 0
 
-SPECIAL_TRADES = False
+SPECIAL_TRADES = True
 if SPECIAL_TRADES:
     DUPLICATES_PER_BATCH            = 1
-    PERCENTAGE_MODIFY               = 0.1
+    PERCENTAGE_MODIFY               = 1
     PERCENTAGE_OUT_OR_ORDER         = 100
 
 # Other
@@ -88,12 +88,12 @@ FAILURE_MAP_LAMBDA_PCT                  = 0
 FAILURE_STATELESS_MAP_LAMBDA_PCT        = 0
 FAILURE_REDUCE_LAMBDA_PCT               = 0
 
-FAILURES = False
+FAILURES = True
 if FAILURES:
     FAILURE_STATE_LAMBDA_PCT            = 1
     FAILURE_MAP_LAMBDA_PCT              = 2
     FAILURE_STATELESS_MAP_LAMBDA_PCT    = 0.2
-    FAILURE_REDUCE_LAMBDA_PCT           = 0.2
+    FAILURE_REDUCE_LAMBDA_PCT           = 2
 
 # --------------------------------------------------------------------------------------------------
 # Kibana / Performance Tracker Settings

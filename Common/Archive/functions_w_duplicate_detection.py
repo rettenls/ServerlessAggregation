@@ -147,9 +147,9 @@ def aggregate_over_dynamo_records(records):
         # Add New Image to Aggregate
         new_data = record[DYNAMO_NAME]['NewImage']
 
-        new_hierarchy       = json.loads(   new_data[HIERARCHY_COLUMN_NAME]['S'] )
-        new_value           = float(        new_data[VALUE_COLUMN_NAME]['N']     )
-        new_generated_time  = float(        new_data[TIMESTAMP_COLUMN_NAME]['N'] )
+        new_hierarchy       =           new_data[HIERARCHY_COLUMN_NAME]['S']
+        new_value           = float(    new_data[VALUE_COLUMN_NAME]['N']     )
+        new_generated_time  = float(    new_data[TIMESTAMP_COLUMN_NAME]['N'] )
         
         # Add to Value for the New Type
         new_type = hierarchy_to_string(new_hierarchy, AGGREGATION_HIERARCHY)
@@ -163,8 +163,8 @@ def aggregate_over_dynamo_records(records):
         if 'OldImage' in record[DYNAMO_NAME]:
             old_data = record[DYNAMO_NAME]['OldImage']
 
-            old_hierarchy   = json.loads(   old_data[HIERARCHY_COLUMN_NAME]['S'] )
-            old_value       = int(          old_data[VALUE_COLUMN_NAME]['N']     )
+            old_hierarchy    =      old_data[HIERARCHY_COLUMN_NAME]['S']
+            old_value       = int(  old_data[VALUE_COLUMN_NAME]['N'] )
 
             # Subtract from Value for the Old Type
             old_type = hierarchy_to_string(old_hierarchy, AGGREGATION_HIERARCHY)
@@ -184,11 +184,34 @@ def aggregate_over_kinesis_records(records):
 
     # Initialize Delta Dict
     delta = dict()
+    
+    #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
+    ddb_ressource = boto3.resource(DYNAMO_NAME)
+    table = ddb_ressource.Table("TestTable")
+    total = 0
+    #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
 
      # Iterate over Messages
     for record in records:
 
         data = json.loads(base64.b64decode(record[KINESIS_NAME]['data']).decode('utf-8'))
+        
+        #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
+        try: 
+            table.put_item(
+                Item={
+                    'Id': data[ID_COLUMN_NAME]
+                    },
+                ConditionExpression='attribute_not_exists(Id)'
+                )
+        except ClientError as e:
+            if e.response['Error']['Code']=='ConditionalCheckFailedException':   
+                total += 1
+                print("DUPLICATE ITEM FOUND!")
+            else:
+                print(e)
+                raise Exception()
+        #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
 
         # Get Relevant Data
         record_hierarchy    = data[HIERARCHY_COLUMN_NAME]
@@ -209,5 +232,18 @@ def aggregate_over_kinesis_records(records):
     # Adjust timestamp mean by number of messages
     if delta:
         delta[TIMESTAMP_GENERATOR_MEAN] /= delta[MESSAGE_COUNT_NAME]
+        
+    #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
+    if total and total != len(records):
+        table.update_item(
+            Key = {
+                "Id" : "Total"
+                },
+            UpdateExpression = 'ADD Val :total',
+            ExpressionAttributeValues={
+                ':total': total
+                },
+            )
+    #### DETECTION OF DUPLICATES IN STATELESS PIPELINE
 
     return delta

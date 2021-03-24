@@ -7,7 +7,7 @@ REGION_NAME                     = 'eu-central-1'
 
 # Kinesis
 KINESIS_NAME                    = 'kinesis'
-KINESIS_STREAM_NAME             = 'RiskDataStream'
+KINESIS_STREAM_NAME             = 'LargeRiskDataStream'
 
 # DynamoDB Table and Column Names
 DYNAMO_NAME                     = 'dynamodb'
@@ -20,6 +20,9 @@ DELTA_TABLE_KEY                 = 'MessageHash'
 
 AGGREGATE_TABLE_NAME            = 'AggregateTable'
 AGGREGATE_TABLE_KEY             = 'Identifier'
+
+HASH_TABLE_NAME                 = 'HashTable'
+HASH_TABLE_KEY                  = 'hash'
 
 MESSAGE_COUNT_NAME              = 'message_count'
 
@@ -46,23 +49,23 @@ TIMESTAMP_GENERATOR_MEAN        = 'timestamp_generator_mean'
 GENERATOR_STORAGE_ACTIVE            = False
 
 # Number of messages per Generator
-THREAD_NUM                          = 4
+THREAD_NUM                          = 40
 NUMBER_OF_BATCHES_PER_THREAD        = 250
-BATCH_SIZE                          = 100
+BATCH_SIZE                          = 500
 
 # Risk Values
 MIN_VALUE_OF_RISK                   = 0
-MAX_VALUE_OF_RISK                   = 1000
+MAX_VALUE_OF_RISK                   = 100000
 
 # Special Trades
 DUPLICATES_PER_BATCH                = 0
 PERCENTAGE_MODIFY                   = 0
 PERCENTAGE_OUT_OR_ORDER             = 0
 
-SPECIAL_TRADES = False
+SPECIAL_TRADES = True
 if SPECIAL_TRADES:
     DUPLICATES_PER_BATCH            = 1
-    PERCENTAGE_MODIFY               = 0.1
+    PERCENTAGE_MODIFY               = 1
     PERCENTAGE_OUT_OR_ORDER         = 100
 
 # Other
@@ -85,12 +88,12 @@ FAILURE_MAP_LAMBDA_PCT                  = 0
 FAILURE_STATELESS_MAP_LAMBDA_PCT        = 0
 FAILURE_REDUCE_LAMBDA_PCT               = 0
 
-FAILURES = False
+FAILURES = True
 if FAILURES:
     FAILURE_STATE_LAMBDA_PCT            = 1
     FAILURE_MAP_LAMBDA_PCT              = 2
     FAILURE_STATELESS_MAP_LAMBDA_PCT    = 0.2
-    FAILURE_REDUCE_LAMBDA_PCT           = 0.2
+    FAILURE_REDUCE_LAMBDA_PCT           = 2
 
 # --------------------------------------------------------------------------------------------------
 # Kibana / Performance Tracker Settings

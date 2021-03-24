@@ -147,9 +147,9 @@ def aggregate_over_dynamo_records(records):
         # Add New Image to Aggregate
         new_data = record[DYNAMO_NAME]['NewImage']
 
-        new_hierarchy       =           new_data[HIERARCHY_COLUMN_NAME]['S']
-        new_value           = float(    new_data[VALUE_COLUMN_NAME]['N']     )
-        new_generated_time  = float(    new_data[TIMESTAMP_COLUMN_NAME]['N'] )
+        new_hierarchy       = json.loads(   new_data[HIERARCHY_COLUMN_NAME]['S'] )
+        new_value           = float(        new_data[VALUE_COLUMN_NAME]['N']     )
+        new_generated_time  = float(        new_data[TIMESTAMP_COLUMN_NAME]['N'] )
         
         # Add to Value for the New Type
         new_type = hierarchy_to_string(new_hierarchy, AGGREGATION_HIERARCHY)
@@ -163,8 +163,8 @@ def aggregate_over_dynamo_records(records):
         if 'OldImage' in record[DYNAMO_NAME]:
             old_data = record[DYNAMO_NAME]['OldImage']
 
-            old_hierarchy    =      old_data[HIERARCHY_COLUMN_NAME]['S']
-            old_value       = int(  old_data[VALUE_COLUMN_NAME]['N'] )
+            old_hierarchy   = json.loads(   old_data[HIERARCHY_COLUMN_NAME]['S'] )
+            old_value       = int(          old_data[VALUE_COLUMN_NAME]['N']     )
 
             # Subtract from Value for the Old Type
             old_type = hierarchy_to_string(old_hierarchy, AGGREGATION_HIERARCHY)
