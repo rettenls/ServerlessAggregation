@@ -164,7 +164,7 @@ def aggregate_over_dynamo_records(records):
             old_data = record[DYNAMO_NAME]['OldImage']
 
             old_hierarchy   = json.loads(   old_data[HIERARCHY_COLUMN_NAME]['S'] )
-            old_value       = int(          old_data[VALUE_COLUMN_NAME]['N']     )
+            old_value       = float(        old_data[VALUE_COLUMN_NAME]['N']     )
 
             # Subtract from Value for the Old Type
             old_type = hierarchy_to_string(old_hierarchy, AGGREGATION_HIERARCHY)

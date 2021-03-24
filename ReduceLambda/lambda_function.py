@@ -42,8 +42,7 @@ def lambda_handler(event, context):
 
     # Initialize DDB Ressource
     ddb_ressource = boto3.resource(DYNAMO_NAME, region_name=REGION_NAME)
-    hash_table = ddb_ressource.Table(HASH_TABLE_NAME)
-    
+
     # Calculate hash to ensure this batch hasn't been processed already:
     record_list_hash = hashlib.md5(str(records).encode()).hexdigest()
 

@@ -7,7 +7,7 @@ REGION_NAME                     = 'eu-central-1'
 
 # Kinesis
 KINESIS_NAME                    = 'kinesis'
-KINESIS_STREAM_NAME             = 'LargeRiskDataStream'
+KINESIS_STREAM_NAME             = 'RiskDataStream'
 
 # DynamoDB Table and Column Names
 DYNAMO_NAME                     = 'dynamodb'
@@ -20,9 +20,6 @@ DELTA_TABLE_KEY                 = 'MessageHash'
 
 AGGREGATE_TABLE_NAME            = 'AggregateTable'
 AGGREGATE_TABLE_KEY             = 'Identifier'
-
-HASH_TABLE_NAME                 = 'HashTable'
-HASH_TABLE_KEY                  = 'hash'
 
 MESSAGE_COUNT_NAME              = 'message_count'
 
@@ -46,12 +43,12 @@ TIMESTAMP_GENERATOR_MEAN        = 'timestamp_generator_mean'
 # --------------------------------------------------------------------------------------------------
 
 # General
-GENERATOR_STORAGE_ACTIVE            = False
+GENERATOR_STORAGE_ACTIVE            = True
 
 # Number of messages per Generator
-THREAD_NUM                          = 40
+THREAD_NUM                          = 4
 NUMBER_OF_BATCHES_PER_THREAD        = 250
-BATCH_SIZE                          = 500
+BATCH_SIZE                          = 100
 
 # Risk Values
 MIN_VALUE_OF_RISK                   = 0
